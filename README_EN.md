@@ -1,35 +1,145 @@
 # openclaw-data-china-stock
 
-OpenClaw/ClawHub plugin for collecting A-share, ETF, and listed option market data.
+`openclaw-data-china-stock` is an open-source, free-to-use OpenClaw/ClawHub data collection plugin for retail investors. It provides a unified set of `tool_*` interfaces to fetch A-share index, ETF, stocks, and listed options—covering realtime, historical, and minute-level data, plus option contract lookup. The plugin supports multiple data sources with automatic priority and fallback, and disables disk cache writes by default (`data_cache.enabled=false`) to reduce data pollution risk.
 
 ## What you get
 
-This plugin reuses the upstream `data_collection` and `merged` tool implementations and exposes stable `tool_*` interfaces for:
-
-- Index / ETF / Option market data (realtime, historical, minute, opening/greeks).
+- Index / ETF / **Stock** / Option market data (realtime, historical, minute, opening, Greeks).
 - Option contracts (by underlying).
-- Optional: pre-market/policy/news, sector rotation, limit-up pool, northbound flow, and more.
-- Optional: local Parquet cache reads.
+- Optional capabilities: pre-market/policy/news, sector rotation, limit-up pool, northbound flow, etc.
+- Optional local Parquet cache reads.
+
+## Why now
+
+Many retail users don’t lack information—they lack a stable, unified data “bottom layer” with consistent parameters, consistent return shapes, and predictable availability.
+
+This plugin focuses on solving common pain points:
+
+- Multiple data sources with consistent interfaces
+- Better stability via provider priority + automatic fallback
+- Controlled caching: default to **read-only** disk cache mode
+- Unified entry point to reduce “tool switching” overhead
+
+## Target audience
+
+- Retail investors focusing on A-shares / ETFs / listed options
+- Users who want a workflow-friendly data foundation for OpenClaw/Agent
+- Developers who want consistent tool contracts without dealing with many different data providers
+
+## Core capabilities (for stable use)
+
+- As complete as possible by default across index/ETF/stock/options
+- Multi-source provider priority and fallback to reduce single-provider failures
+- Unified cross-asset entry: `tool_fetch_market_data`
+- Compatibility entries kept for convenience: `tool_fetch_index_data`, `tool_fetch_etf_data`, `tool_fetch_option_data`
 
 ## Recommended usage
 
-1. Configure the tool runner path in OpenClaw plugin settings to point to:
-   - `tool_runner.py` in this repository.
+1. Configure the tool runner path in OpenClaw plugin settings to:
+   - `tool_runner.py` in this repository
 2. In your Agent/Workflow, call:
-   - `tool_fetch_market_data` as the primary cross-asset unified entry.
+   - `tool_fetch_market_data` as the primary cross-asset unified entry
 3. For cached/offline scenarios (when enabled), use:
-   - `tool_read_market_data` or `tool_read_index_*` / `tool_read_etf_*` / `tool_read_option_*`.
+   - `tool_read_market_data` or `tool_read_index_*` / `tool_read_etf_*` / `tool_read_option_*`
 
-## MVP tools (recommended)
+## MVP tool categories & interface list (release exposure)
 
-- `tool_fetch_market_data`
-  - Cross-asset unified entry (recommended).
-- `tool_get_option_contracts`
-  - Get option contracts for a given underlying.
-- Compatibility unified entries:
-  - `tool_fetch_index_data`
-  - `tool_fetch_etf_data`
-  - `tool_fetch_option_data`
+Notes:
+- “Available” means the tool is registered in `config/tools_manifest.yaml` (runtime uses `config/tools_manifest.json`).
+- “Not in the current MVP tool subset” means the implementation exists but is not exposed in the current published tool subset.
+
+### Cross-asset unified entry (recommended)
+
+- `tool_fetch_market_data` (Available)
+  - `asset_type=realtime|historical|minute|opening|greeks|global_spot|iopv_snapshot`
+
+### Compatibility entries (merged three entries)
+
+- `tool_fetch_index_data` (Available)
+- `tool_fetch_etf_data` (Available)
+- `tool_fetch_option_data` (Available)
+
+### Index (Index)
+
+- `tool_fetch_index_realtime` (Available)
+- `tool_fetch_index_historical` (Available)
+- `tool_fetch_index_minute` (Available)
+- `tool_fetch_index_opening` (Available)
+- `tool_fetch_global_index_spot` (Not in the current MVP tool subset)
+
+### ETF (ETF)
+
+- `tool_fetch_etf_realtime` (Available)
+- `tool_fetch_etf_historical` (Available)
+- `tool_fetch_etf_minute` (Available)
+- `tool_fetch_etf_iopv_snapshot` (Available)
+
+### Options (Option)
+
+- `tool_fetch_option_realtime` (Available)
+- `tool_fetch_option_greeks` (Available)
+- `tool_fetch_option_minute` (Available)
+
+### Futures (Futures)
+
+- `tool_fetch_a50_data` (Available)
+
+### Stocks & aggregation (Stock)
+
+- `tool_fetch_stock_realtime` (Available)
+- `tool_fetch_stock_historical` (Available)
+- `tool_fetch_stock_minute` (Available)
+- `tool_stock_data_fetcher` (Available)
+- `tool_stock_monitor` (Available)
+
+### Financials (Financials)
+
+- `tool_fetch_stock_financials` (Available)
+
+### Limit-up / sector heat / dragon-tiger / capital flow / northbound
+
+- `tool_fetch_limit_up_stocks` (Available)
+- `tool_sector_heat_score` (Available)
+- `tool_write_limit_up_with_sector` (Available)
+- `tool_limit_up_daily_flow` (Available)
+- `tool_dragon_tiger_list` (Available)
+- `tool_capital_flow` (Available)
+- `tool_fetch_northbound_flow` (Available)
+- `tool_fetch_sector_data` (Available)
+
+### Pre-market / policy / macro / announcements / industry news
+
+- `tool_fetch_policy_news` (Available)
+- `tool_fetch_macro_commodities` (Available)
+- `tool_fetch_overnight_futures_digest` (Available)
+- `tool_conditional_overnight_futures_digest` (Available)
+- `tool_fetch_announcement_digest` (Available)
+- `tool_fetch_industry_news_brief` (Not in the current MVP tool subset)
+
+### Trading sessions / contracts / tradability (Utils)
+
+- `tool_get_option_contracts` (Available)
+- `tool_check_trading_status` (Available)
+- `tool_get_a_share_market_regime` (Available)
+- `tool_filter_a_share_tradability` (Available)
+- `tool_fetch_multiple_etf_realtime` (Not in the current MVP tool subset)
+- `tool_fetch_multiple_index_realtime` (Not in the current MVP tool subset)
+- `tool_fetch_multiple_option_realtime` (Not in the current MVP tool subset)
+- `tool_fetch_multiple_option_greeks` (Not in the current MVP tool subset)
+
+### Local cache reads (read_*)
+
+- `tool_read_market_data` (Available)
+- `tool_read_index_daily` (Available)
+- `tool_read_index_minute` (Available)
+- `tool_read_etf_daily` (Available)
+- `tool_read_etf_minute` (Available)
+- `tool_read_option_minute` (Available)
+- `tool_read_option_greeks` (Available)
+
+### Tick (optional, not in MVP)
+
+- `fetch_tick_with_quality` (Not exposed as tool_*)
 
 ## Cache policy (important)
 
@@ -46,7 +156,7 @@ In `config.yaml`:
 - `data_cache.enabled: true`
   - Disk cache reads and writes are both enabled.
 
-### Common tool return contract (recommended fields)
+## Common tool return contract (recommended fields)
 
 Most `tool_*` functions return a JSON object that typically includes:
 
@@ -76,3 +186,10 @@ The plugin follows the provider priority order in `data_sources.*.priority` (for
   - `max_retries`: maximum retry count
   - `retry_delay`: delay between retries (seconds)
 
+## Disclaimer
+
+This plugin is for data collection and engineering practice only. It does not constitute investment advice or a promise of any results. Users are responsible for any risks and outcomes arising from their usage.
+
+## License
+
+MIT License (open-source and free-to-use).

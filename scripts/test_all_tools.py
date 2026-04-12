@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+"""
+批量烟测：按 config/tools_manifest.json 逐工具调用 tool_runner.py。
+
+资金流向 tool_fetch_a_share_fund_flow 默认用 query_kind=market_history（轻量）。
+单独测 big_deal 等多场景示例：
+  python tool_runner.py tool_fetch_a_share_fund_flow \\
+    '{"query_kind":"big_deal","limit":30,"big_deal_stock_code":""}'
+"""
+
 import argparse
 import json
 import os
@@ -140,6 +149,12 @@ def _heuristic_value(param_name: str) -> Any:
         return "news"
     if k in ("provider_preference",):
         return "auto"
+    if k == "query_kind":
+        # tool_fetch_a_share_fund_flow：必填且无 schema default；market_history 参数最少、适合烟测
+        return "market_history"
+    if k == "screener_kind":
+        # tool_fetch_a_share_technical_screener：同花顺排名表，无 variant 的最小用例
+        return "continuous_up"
     if k in ("include_weight",):
         return False
     if k in ("max_rows",):

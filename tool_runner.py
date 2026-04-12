@@ -362,6 +362,14 @@ TOOL_MAP: Dict[str, ToolSpec] = {
         module_path="plugins.data_collection.northbound",
         function_name="tool_fetch_northbound_flow",
     ),
+    "tool_fetch_a_share_fund_flow": ToolSpec(
+        module_path="plugins.data_collection.a_share_fund_flow",
+        function_name="tool_fetch_a_share_fund_flow",
+    ),
+    "tool_fetch_a_share_technical_screener": ToolSpec(
+        module_path="plugins.data_collection.a_share_technical_screener",
+        function_name="tool_fetch_a_share_technical_screener",
+    ),
     "tool_fetch_policy_news": ToolSpec(
         module_path="plugins.data_collection.morning_brief_fetchers",
         function_name="tool_fetch_policy_news",

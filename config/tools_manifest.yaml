@@ -985,6 +985,101 @@ tools:
         type: number
         description: 回溯天数
         default: 1
+- id: tool_fetch_a_share_fund_flow
+  label: A股资金流向（统一）
+  description: >-
+    A 股大盘/板块/个股资金流向（AkShare 东方财富、同花顺等多源链；原始数据非投资建议，口径以数据源页面为准）。
+    query_kind：market_history（大盘历史）| sector_rank（板块排名）| stock_rank（个股排名）| stock_history（单股序列）|
+    big_deal（大单：东财 push2 限页「大单净流入」排序快照→同花顺 HTML 限页（BIG_DEAL_THS_MAX_PAGES）→AkShare 全量；非逐笔、字段可能不同）|
+    main_force_rank（主力净流入排名）| sector_drill（板块成分资金流+可选历史）。
+  description_short: A股资金流向统一接口（东财/同花顺）。
+  parameters:
+    type: object
+    properties:
+      query_kind:
+        type: string
+        description: >-
+          market_history | sector_rank | stock_rank | stock_history | big_deal | main_force_rank | sector_drill
+      provider_preference:
+        type: string
+        description: auto | eastmoney | ths
+        default: auto
+      limit:
+        type: number
+        description: 排名类返回条数上限（最大 200）
+        default: 50
+      max_days:
+        type: number
+        description: market_history 截取最近交易日数量
+        default: 120
+      sector_type:
+        type: string
+        description: sector_rank 用 industry | concept | region
+        default: industry
+      rank_window:
+        type: string
+        description: immediate | d3 | d5 | d10 | d20
+        default: immediate
+      stock_code:
+        type: string
+        description: stock_history 六码；可与 big_deal_stock_code 用于大单过滤
+        default: ""
+      market:
+        type: string
+        description: sh | sz，空则按代码推断
+        default: ""
+      lookback_days:
+        type: number
+        description: stock_history 回溯（上限 120）
+        default: 20
+      sector_name:
+        type: string
+        description: sector_drill 行业或概念名称（与东财列表一致）
+        default: ""
+      drill_kind:
+        type: string
+        description: sector_drill 历史接口类型 industry | concept
+        default: industry
+      include_hist:
+        type: boolean
+        description: sector_drill 是否附加行业/概念历史资金流
+        default: false
+      main_force_symbol:
+        type: string
+        description: main_force_rank 传入 stock_main_fund_flow 的 symbol（如 全部股票）
+        default: 全部股票
+      big_deal_stock_code:
+        type: string
+        description: big_deal 按六码过滤（各源列名含「代码」时生效；东财代理列为排名快照）
+        default: ""
+    required:
+    - query_kind
+- id: tool_fetch_a_share_technical_screener
+  label: A股技术选股排名表
+  description: >-
+    同花顺数据中心「技术选股」排名表（AkShare stock_rank_*_ths）：创新高/新低、连续涨跌、持续放量缩量、
+    上下突破均线、量价齐升/跌、险资举牌等。非本地 MACD/RSI 计算（请用 tool_stock_data_fetcher 或
+    tool_calculate_technical_indicators）。原始数据非投资建议。
+  description_short: A股技术选股表（同花顺 THS）。
+  parameters:
+    type: object
+    properties:
+      screener_kind:
+        type: string
+        description: >-
+          new_high | new_low | continuous_up | continuous_down | volume_expansion | volume_contraction |
+          breakout_up | breakout_down | price_volume_up | price_volume_down | insurance_holding_raise
+      variant:
+        type: string
+        description: >-
+          new_high/new_low：month | half_year | year | all_time（默认 month）；breakout_up/down：ma5…ma500（默认 ma20）；其余忽略
+        default: ""
+      limit:
+        type: number
+        description: 返回行数上限（最大 200）
+        default: 80
+    required:
+    - screener_kind
 - id: tool_fetch_policy_news
   label: 盘前政策要闻
   description: Tavily 检索宏观/监管要闻，带本地缓存（data/cache/policy_news_*.json）。

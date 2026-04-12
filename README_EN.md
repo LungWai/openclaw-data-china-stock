@@ -13,7 +13,7 @@ An open-source, free **OpenClaw code plugin** that exposes a unified set of `too
 - **Unified entry**: Prefer `tool_fetch_market_data` across index / ETF / stock / option assets; stocks also support `timeshare`, `pre_market`, `market_overview`, and `valuation_snapshot` views.
 - **Multi-source resilience**: AkShare, Sina, Eastmoney, optional Tushare, plus circuit breaker / retries as configured—reducing single-point outages in Agent workflows.
 - **Cache you control**: Parquet **writes** are off by default; enable `data_cache.enabled=true` in `config.yaml` only when you want local read/write caching.
-- **Retail-oriented tools**: limit-up lists, dragon-tiger, northbound flow, sector heat, option Greeks, trading-status helpers, and more (as registered in `config/tools_manifest.json`).
+- **Retail-oriented tools**: limit-up lists, dragon-tiger, northbound flow, **onshore A-share fund flow** (`tool_fetch_a_share_fund_flow`), **technical stock screeners** (`tool_fetch_a_share_technical_screener`), sector heat, option Greeks, trading-status helpers, and more (as registered in `config/tools_manifest.json`).
 - **Predictable JSON**: Most tools return objects with `success`, `data`, `message`, `source` (and optional cache metadata). A-share extended tools usually add `provider`, `fallback_route`, and `attempt_counts` for observability.
 
 ---
@@ -55,7 +55,7 @@ When **`asset_type=stock`**, besides `realtime` / `historical` / `minute` / `ope
 
 ### Installation
 
-**Published version (check registry): `0.2.1`**
+**Published version (check registry): `0.2.3`** (see [CHANGELOG.md](CHANGELOG.md).)
 
 **From ClawHub / registry (recommended)**
 
@@ -148,7 +148,7 @@ tools:
       mode: production
 ```
 
-**More examples**: `tool_fetch_a_share_universe`, `tool_fetch_index_constituents`, `tool_fetch_limit_up_stocks`, `tool_fetch_northbound_flow`, `tool_dragon_tiger_list`—see **A-share extended tool system** above and the full list below.
+**More examples**: `tool_fetch_a_share_universe`, `tool_fetch_index_constituents`, `tool_fetch_limit_up_stocks`, `tool_fetch_northbound_flow`, `tool_fetch_a_share_fund_flow`, `tool_fetch_a_share_technical_screener`, `tool_dragon_tiger_list`—see **A-share extended tool system** above and the full list below.
 
 ### Tushare fallback
 
@@ -221,7 +221,7 @@ This plugin is for **data collection and technical research only**. It is not in
 | Shareholders / IPO / news (P1) | `tool_fetch_stock_shareholders`, `tool_fetch_ipo_calendar`, `tool_fetch_stock_research_news` | Holders, IPO tables, news & research |
 | Corporate | `tool_fetch_stock_corporate_actions` | Dividends, unlocks, issuance, buybacks |
 | Market microstructure | `tool_fetch_margin_trading`, `tool_fetch_block_trades`, `tool_dragon_tiger_list` | Margin, block trades, dragon-tiger |
-| Flow & sentiment | `tool_fetch_northbound_flow`, `tool_capital_flow`, limit-up/sector tools | |
+| Flow & sentiment | `tool_fetch_northbound_flow`, `tool_capital_flow`, `tool_fetch_a_share_fund_flow`, `tool_fetch_a_share_technical_screener`, limit-up/sector tools | |
 | Session | `tool_fetch_policy_news`, digest tools | Tavily / search-style |
 
 ---
@@ -304,7 +304,9 @@ Optional **`provider_preference`** (`auto`, `eastmoney`, `sina`, `csindex`, `cni
 - `tool_write_limit_up_with_sector` (Available)
 - `tool_limit_up_daily_flow` (Available)
 - `tool_dragon_tiger_list` (Available)
-- `tool_capital_flow` (Available)
+- `tool_capital_flow` (Available; per-stock flow summary)
+- `tool_fetch_a_share_fund_flow` (Available; onshore money-flow tables via `query_kind`, multi-source)
+- `tool_fetch_a_share_technical_screener` (Available; Tonghuashun `stock_rank_*_ths` screeners)
 - `tool_fetch_northbound_flow` (Available)
 - `tool_fetch_sector_data` (Available)
 

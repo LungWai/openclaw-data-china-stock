@@ -15,6 +15,13 @@ This plugin provides a ClawHub/OpenClaw compatible toolset for collecting A-shar
 - `tool_get_option_contracts`: Fetch option contracts by underlying.
 - `tool_read_market_data` / `tool_read_*`: Read previously cached Parquet data (when enabled).
 
+### Fund-flow tools (pick one job, do not duplicate)
+
+- **`tool_capital_flow`**: Single-stock **summary** for workflows that need `flow_judgement` / `risk_flags` style outputs (e.g. limit-up strategies).
+- **`tool_fetch_a_share_fund_flow`**: **Tabular / ranking / history** for onshore A-share money flow (`query_kind` selects market/sector/stock tables, big deals, main-force ranks, sector drill-down). Uses Eastmoney/Tonghuashun-style AkShare routes with an explicit attempt chain; raw data is not investment advice.
+- **`tool_fetch_northbound_flow`**: **Stock Connect northbound** flows (cross-border), separate from onshore A-share flow tools—keep narratives and citations distinct.
+- **`tool_fetch_a_share_technical_screener`**: Tonghuashun-style **technical stock screeners** (new highs, consecutive up days, volume patterns, MA breakouts, etc.) via AkShare `stock_rank_*_ths`—**not** the same as locally computed MACD/RSI from OHLC (use `tool_stock_data_fetcher` / `tool_calculate_technical_indicators` for those).
+
 ## Safety and independence
 
 The plugin is designed to run independently (no dependency on any other repository):

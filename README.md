@@ -21,7 +21,7 @@
 - **统一入口**：优先使用 `tool_fetch_market_data`，跨指数 / ETF / 股票 / 期权；股票另支持 `timeshare` / `pre_market` / `market_overview` / `valuation_snapshot` 等扩展 `view`。
 - **多源更稳**：AkShare / 新浪 / 东方财富 / 可选 Tushare + 熔断/重试协作，降低单点不可用对 Agent 工作流的影响。
 - **缓存可控**：默认关闭磁盘 Parquet **写入**，避免脏数据污染；离线补数/提速时再显式开启 `data_cache.enabled=true`。
-- **面向散户的常用能力**：涨停池、龙虎榜、北向资金、板块热度、期权 Greeks、交易状态与合约查询等（以 `config/tools_manifest.json` 注册为准）。
+- **面向散户的常用能力**：涨停池、龙虎榜、北向资金、**境内 A 股资金流向**（`tool_fetch_a_share_fund_flow`）、**技术选股排名表**（`tool_fetch_a_share_technical_screener`，同花顺 `stock_rank_*_ths`）、板块热度、期权 Greeks、交易状态与合约查询等（以 `config/tools_manifest.json` 注册为准）。
 - **返回契约一致**：多数工具返回带 `success` / `data` / `message` / `source` 的 JSON；部分扩展工具还带 `provider` / `fallback_route` / `attempt_counts` 便于排障。
 
 ---
@@ -83,7 +83,7 @@ tools:
       mode: production
 ```
 
-**更多能力（示例）**：主数据 `tool_fetch_a_share_universe`、指数成份 `tool_fetch_index_constituents`、涨停池 `tool_fetch_limit_up_stocks`、北向 `tool_fetch_northbound_flow`、龙虎榜 `tool_dragon_tiger_list`（完整列表见下文清单）。
+**更多能力（示例）**：主数据 `tool_fetch_a_share_universe`、指数成份 `tool_fetch_index_constituents`、涨停池 `tool_fetch_limit_up_stocks`、北向 `tool_fetch_northbound_flow`、境内资金流 `tool_fetch_a_share_fund_flow`、技术选股表 `tool_fetch_a_share_technical_screener`、龙虎榜 `tool_dragon_tiger_list`（完整列表见下文清单）。
 
 > 提示：本文后半部分有**完整工具清单**与**缓存/降级/重试**策略；建议把它当作“数据层使用手册”。
 
@@ -91,7 +91,7 @@ tools:
 
 ### 安装
 
-**当前发布版本（npm / ClawHub 以 registry 为准）：`0.2.1`**
+**当前发布版本（npm / ClawHub 以 registry 为准）：`0.2.3`**（变更说明见 [CHANGELOG.md](CHANGELOG.md)。）
 
 **从 ClawHub / 注册表安装（推荐）**
 
@@ -245,7 +245,9 @@ pip install -r requirements.txt
 - `tool_write_limit_up_with_sector`（已注册；是否写入需看缓存策略/配置）
 - `tool_limit_up_daily_flow`（已注册；是否写入需看缓存策略/配置）
 - `tool_dragon_tiger_list`（已注册）
-- `tool_capital_flow`（已注册）
+- `tool_capital_flow`（已注册；个股资金流摘要）
+- `tool_fetch_a_share_fund_flow`（已注册；境内 A 股资金流可查表：`query_kind` 大盘/板块/个股/大单/主力/板块下钻等，多源链）
+- `tool_fetch_a_share_technical_screener`（已注册；同花顺技术选股排名表，非本地 MACD 计算）
 - `tool_fetch_northbound_flow`（已注册）
 - `tool_fetch_sector_data`（已注册）
 

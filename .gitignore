@@ -4,6 +4,7 @@ logs/
 # Local caches / artifacts
 # Full-tool smoke output (scripts/test_all_tools.py) — 体积大、随环境变化，不纳入版本库
 tool_test_report*.json
+*.tgz
 
 *.parquet
 *.jsonl
@@ -20,6 +21,7 @@ venv/
 
 # Node
 node_modules/
+.npmrc
 
 # Editor / OS
 .DS_Store

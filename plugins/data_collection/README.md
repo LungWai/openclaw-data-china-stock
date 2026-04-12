@@ -44,8 +44,10 @@
 | **financials.py** | `tool_fetch_stock_financials` | PE/PB/ROE 等 |
 | **limit_up/** | `tool_fetch_limit_up_stocks`、`tool_sector_heat_score`、`tool_write_limit_up_with_sector`、`tool_limit_up_daily_flow` | 涨停回马枪数据与日报 |
 | **dragon_tiger.py** | `tool_dragon_tiger_list` | 龙虎榜 |
-| **northbound.py** | `tool_fetch_northbound_flow` | 北向 |
-| **capital_flow.py** | `tool_capital_flow` | 个股资金流 |
+| **northbound.py** | `tool_fetch_northbound_flow` | 北向（沪深港通跨境） |
+| **a_share_fund_flow.py** | `tool_fetch_a_share_fund_flow` | A 股境内资金流：大盘/板块/个股排名与序列、大单、主力排名、板块下钻（东财/同花顺多源链）；与 `capital_flow` 摘要工具互补 |
+| **a_share_technical_screener.py** | `tool_fetch_a_share_technical_screener` | A 股技术选股**排名表**（同花顺 `stock_rank_*_ths`：创新高/连续涨跌/量价齐升等）；非本地 MACD/RSI（见 `stock_data_fetcher` / `technical_indicators`） |
+| **capital_flow.py** | `tool_capital_flow` | 个股资金流摘要（涨停回马枪等技能用 `flow_judgement` / `risk_flags`） |
 | **sector.py** | `tool_fetch_sector_data` | 行业/概念板块 |
 | **morning_brief_fetchers.py** | `tool_fetch_policy_news`、`tool_fetch_macro_commodities`、`tool_fetch_overnight_futures_digest`、`tool_conditional_overnight_futures_digest`、`tool_fetch_announcement_digest`、`tool_fetch_industry_news_brief` | 盘前/政策；Tavily 等见模块 docstring |
 | **utils/** | `tool_get_option_contracts`、`tool_check_trading_status`、`tool_get_a_share_market_regime`、`tool_filter_a_share_tradability`、`tool_fetch_multiple_etf_realtime`、`tool_fetch_multiple_index_realtime`、`tool_fetch_multiple_option_realtime`、`tool_fetch_multiple_option_greeks` | `check_trading_status` 返回 `allows_intraday_continuous_wording`、`quote_narration_rule_cn` |
@@ -65,7 +67,7 @@
 | 指数 / ETF / 期权 / A50 | `merged` + `index/`、`etf/`、`option/`、`futures/`；或根目录 `fetch_*_data.py` 简版 |
 | 个股 | `stock/`、`financials.py`、`stock/fundamentals_extended.py` |
 | 涨停 / 板块热度 / 日报 | `limit_up/`、`sector.py` |
-| 北向 / 资金 / 龙虎榜 | `northbound.py`、`capital_flow.py`、`dragon_tiger.py` |
+| 北向 / A 股资金 / 龙虎榜 | `northbound.py`、`a_share_fund_flow.py`、`capital_flow.py`、`dragon_tiger.py` |
 | 交易时段 / 可交易性 / 批量 | `utils/` |
 | Tick | `tick/fetch_tick.py`（`tick_client`） |
 
@@ -85,6 +87,7 @@ data_collection/
 ├── financials.py
 ├── sector.py
 ├── northbound.py
+├── a_share_fund_flow.py
 ├── capital_flow.py
 ├── dragon_tiger.py
 ├── morning_brief_fetchers.py
@@ -592,8 +595,10 @@ from plugins.data_collection.fetch_option_data import tool_fetch_option_greeks
 | `limit_up/daily_report.py` | `tool_write_limit_up_with_sector`，`tool_limit_up_daily_flow` | 盘后写入 `data/limit_up_research/`，可选 Markdown 报告与飞书通知 |
 | `sector.py` | `tool_fetch_sector_data` | 行业/概念板块涨跌与轮动（东方财富优先，AkShare 备用） |
 | `dragon_tiger.py` | `tool_dragon_tiger_list` | 涨停池 ∩ 龙虎榜明细，输出游资相关摘要（依赖 AkShare） |
-| `capital_flow.py` | `tool_capital_flow` | 个股主力/散户资金流向与简单风险标签 |
-| `northbound.py` | `tool_fetch_northbound_flow` | 沪深港通北向资金（东方财富接口） |
+| `a_share_fund_flow.py` | `tool_fetch_a_share_fund_flow` | 境内 A 股资金流「可查表」：`query_kind` 区分大盘历史、板块/个股排名、单股序列、大单、主力排名、板块成分下钻；多源链见 [AkShare 资金流向](https://akshare.akfamily.xyz/data/stock/stock.html) 与 [AkShare_fund_flow_probe_notes.md](./AkShare_fund_flow_probe_notes.md) |
+| `a_share_technical_screener.py` | `tool_fetch_a_share_technical_screener` | 技术选股排名表（文档「技术指标」）：`screener_kind` 映射 AkShare `stock_rank_*_ths`；[AkShare 股票数据](https://akshare.akfamily.xyz/data/stock/stock.html) |
+| `capital_flow.py` | `tool_capital_flow` | 个股主力/散户资金流向与简单风险标签（摘要向，与上表互补） |
+| `northbound.py` | `tool_fetch_northbound_flow` | 沪深港通北向资金（跨境；与境内 A 股资金流勿混） |
 
 插件内导入已统一为 `from plugins.data_collection...`（以项目根目录在 `PYTHONPATH` 中为前提）。
 

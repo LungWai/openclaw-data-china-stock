@@ -17,6 +17,11 @@
   - `INSTALL.md`（安装部署指南）
   - 指标文档增加字段对照表与 P2 说明
 
+### Patch: restore full tool registration (compat)
+
+- 将 `config/tools_manifest.{json,yaml}` 与 `tool_runner.py` 恢复为全量工具清单，保证历史工具仍可被 OpenClaw 正常发现与执行。
+- 重新加入并映射 `tool_calculate_technical_indicators` 到新增的技术指标引擎实现，支持 P0/P1/P2（共 58 指标）。
+
 ### Validation
 
 - 指标工具、manifest/tool_runner 对齐测试全部通过。

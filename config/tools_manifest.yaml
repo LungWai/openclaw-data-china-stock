@@ -1192,3 +1192,50 @@ tools:
     required:
     - asset_type
     - view
+- id: tool_calculate_technical_indicators
+  label: 计算技术指标（通用）
+  description: 基于历史 OHLCV 计算技术指标（P0/P1/P2 体系，P0=19/P1=10/P2=29）。默认 TA-Lib 优先、pandas-ta 自动降级，支持 append/standalone 返回模式。
+  parameters:
+    type: object
+    properties:
+      asset_code:
+        type: string
+        description: 标的代码，如 510300/000300/600519
+      asset_type:
+        type: string
+        description: index|etf|stock
+      period:
+        type: string
+        default: daily
+      start_date:
+        type: string
+        description: YYYYMMDD，可选
+      end_date:
+        type: string
+        description: YYYYMMDD，可选
+      indicators:
+        type: object
+        description: 指标请求模型（当前实现先覆盖 P0/P1/P2；未来可扩展到 explicit/grouped）
+      return_mode:
+        type: string
+        description: append|standalone
+        default: standalone
+      use_cache:
+        type: boolean
+        default: true
+      engine_preference:
+        type: string
+        description: auto|talib|pandas_ta
+        default: auto
+      output_schema_version:
+        type: string
+        default: v1
+      alignment:
+        type: object
+        properties:
+          macd_factor:
+            type: number
+            default: 2
+    required:
+    - asset_code
+    - asset_type

@@ -42,19 +42,45 @@ function loadToolsManifest(): { tools: Array<{ id: string; label: string; descri
   }
 }
 
-const defaultPythonBin = (() => {
-  if (HOME) {
-    const projectVenvPython = `${HOME}/openclaw-data-china-stock/.venv/bin/python`;
-    if (existsSync(projectVenvPython)) return projectVenvPython;
-    const envPython = process.env.OPENCLAW_DATA_CHINA_STOCK_PYTHON;
-    if (envPython?.trim()) return envPython;
-    const pipxMootdxPython = `${HOME}/.local/share/pipx/venvs/mootdx/bin/python`;
-    if (existsSync(pipxMootdxPython)) return pipxMootdxPython;
-  }
-  return "python3";
-})();
+type PythonBinSelection = {
+  bin: string;
+  source: string;
+};
 
-const PYTHON_BIN = defaultPythonBin;
+function resolvePythonBin(): PythonBinSelection {
+  const envPython = (process.env.OPENCLAW_DATA_CHINA_STOCK_PYTHON || "").trim();
+  if (envPython) {
+    return { bin: envPython, source: "env:OPENCLAW_DATA_CHINA_STOCK_PYTHON" };
+  }
+
+  const localCandidates = [
+    join(THIS_DIR, ".venv", "bin", "python"),
+    join(THIS_DIR, ".venv", "Scripts", "python.exe"),
+    join(process.cwd(), ".venv", "bin", "python"),
+    join(process.cwd(), ".venv", "Scripts", "python.exe"),
+  ];
+  for (const c of localCandidates) {
+    if (existsSync(c)) {
+      return { bin: c, source: "local-venv" };
+    }
+  }
+
+  if (HOME) {
+    const legacyProjectVenv = `${HOME}/openclaw-data-china-stock/.venv/bin/python`;
+    if (existsSync(legacyProjectVenv)) {
+      return { bin: legacyProjectVenv, source: "legacy-home-project-venv" };
+    }
+    const pipxMootdxPython = `${HOME}/.local/share/pipx/venvs/mootdx/bin/python`;
+    if (existsSync(pipxMootdxPython)) {
+      return { bin: pipxMootdxPython, source: "pipx-mootdx-venv" };
+    }
+  }
+
+  return { bin: "python3", source: "fallback:python3" };
+}
+
+const PYTHON_SELECTION = resolvePythonBin();
+const PYTHON_BIN = PYTHON_SELECTION.bin;
 
 const plugin = {
   id: "openclaw-data-china-stock",
@@ -81,6 +107,7 @@ const plugin = {
   },
   register(api: OpenClawPluginApi) {
     registerAllTools(api);
+    api.logger.info?.(`openclaw-data-china-stock: Python interpreter -> ${PYTHON_BIN} (${PYTHON_SELECTION.source})`);
     api.logger.info?.("openclaw-data-china-stock: Registered all tools from manifest");
   },
 };

@@ -1,5 +1,4 @@
 # Core dependencies for tool_runner and core data tools.
-# Versions are intentionally left unpinned to reduce install friction across environments.
 
 pydantic
 PyYAML
@@ -15,4 +14,6 @@ tushare
 yfinance
 mootdx
 efinance
+pandas-ta>=0.3.14b
+TA-Lib>=0.4.28
 

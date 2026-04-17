@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-04-17 (v0.4.1)
+
+### Security and release hygiene
+
+- 移除 `plugins/data_collection/utils/ths_big_deal_limited.py` 中的动态 JS 执行路径，改为直接复用 AkShare 接口并本地限流截断，降低供应链与静态扫描风险。
+- 强化 `.clawhubignore`，排除 `.pytest_cache/`、`tool_test_report*.json` 与 `*.tgz`，减少发布包噪音与误报。
+
 ## 2026-04-17 (v0.4.0)
 
 ### Major: China Macro Analyst integration

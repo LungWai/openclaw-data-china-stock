@@ -15,6 +15,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
 
 # Node
 node_modules/
@@ -23,4 +24,8 @@ node_modules/
 .DS_Store
 .idea/
 .vscode/
+
+# Large local reports / release artifacts
+tool_test_report*.json
+*.tgz
 

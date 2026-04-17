@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-04-17 (v0.4.2)
+
+### Critical fix: tail-session compatibility restore
+
+- 新增 `plugins/data_collection/index/fetch_global_hist_sina.py` 兼容模块，恢复历史导入路径 `plugins.data_collection.index.fetch_global_hist_sina`，修复尾盘链路因模块缺失导致的工具执行失败。
+- 增加全局指数符号别名与回退候选（如 `^N225` / `^IXIC`），并在历史接口失败时返回结构化失败结果，避免异常向上冒泡影响报告主流程。
+
 ## 2026-04-17 (v0.4.1)
 
 ### Security and release hygiene

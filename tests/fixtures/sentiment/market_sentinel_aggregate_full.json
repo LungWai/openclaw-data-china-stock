@@ -1,0 +1,20 @@
+{
+  "overall_score": 45,
+  "sentiment_stage": "震荡",
+  "sub_scores": {
+    "limit_up_ecology": 62,
+    "fund_flow_attitude": 55,
+    "northbound_trend": 60,
+    "sector_structure": 52
+  },
+  "factor_attribution": {
+    "leading": "limit_up_ecology",
+    "lagging": "sector_structure",
+    "notes": "涨停分项略高于其他三项。"
+  },
+  "data_completeness_ratio": 1.0,
+  "action_bias": "均衡",
+  "risk_counterevidence": ["北向与内资单日方向不一致，降低进攻置信度。"],
+  "confidence_band": "medium",
+  "degraded": false
+}

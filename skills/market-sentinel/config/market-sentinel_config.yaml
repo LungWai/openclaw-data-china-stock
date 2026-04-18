@@ -33,6 +33,19 @@ dynamic_weight_adjustment:
       - fund_flow_attitude
       - sector_structure
 
+# overall_score -> sentiment_stage 默认映射（v1.0）；与 docs/sentiment/api_contract.md 一致。
+sentiment_stage_thresholds:
+  overall_score:
+    - { max: 20, stage: 冰点 }
+    - { max: 35, stage: 修复 }
+    - { max: 50, stage: 震荡 }
+    - { max: 65, stage: 混沌 }
+    - { max: 85, stage: 高潮 }
+    - { max: 100, stage: 退潮 }
+
+# 子项分数分歧过大时，可将 sentiment_stage 覆盖为「混沌」（与 overall 主阶段并列记录在 factor_attribution）。
+chaos_subscore_spread_min: 35
+
 output_policy:
   allow_execution_instruction: false
   require_counterevidence: true

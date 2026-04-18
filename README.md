@@ -69,7 +69,7 @@
 
 - 技术分析：`skills/technical-analyst/SKILL.md`
 - 市场扫描：`skills/market-scanner/SKILL.md`
-- 市场情绪综合：`skills/market-sentinel/SKILL.md`（四情绪工具聚合）
+- 市场情绪综合：`skills/market-sentinel/SKILL.md`（四情绪工具聚合；聚合 JSON 契约见 `docs/sentiment/api_contract.md` 中 **Skill aggregate** 一节）
 - 资金流分析：`skills/fund-flow-analyst/SKILL.md`
 - 策略回测（MVP）：`skills/strategy-backtester/SKILL.md`
 - 基本面分析：`skills/fundamental-analyst/SKILL.md`

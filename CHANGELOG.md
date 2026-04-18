@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-04-19 (v0.5.3)
+
+### Major: `market-sentinel` skill (sentiment aggregate)
+
+- 新增 Skill `skills/market-sentinel`：并行聚合 `tool_fetch_limit_up_stocks`、`tool_fetch_a_share_fund_flow`、`tool_fetch_northbound_flow`、`tool_fetch_sector_data`，输出 `overall_score`、`sentiment_stage`（含震荡/混沌）、`sub_scores`、`factor_attribution`、`data_completeness_ratio`、`action_bias`、`risk_counterevidence`、`confidence_band`、`degraded`；禁止具体买卖点与杠杆建议。
+- 配置：`skills/market-sentinel/config/market-sentinel_config.yaml`（多 `risk_mode` 权重模板、`dynamic_weight_adjustment`、`sentiment_stage_thresholds`、聚合缓存 TTL）。
+- 工具清单：上述四工具增加 `sentinel_bundle` / `skill_hint` 元数据；`scripts/register_openclaw_dev.py` 注册本 Skill 软链与 agent skills。
+- 文档：`docs/sentiment/api_contract.md` 增补 Skill 聚合契约、阶段映射表、降级与 `insufficient_evidence` 形状；`docs/sentiment/examples.md` 增补 ≥5 条典型问法与端到端说明。
+- 测试：`tests/test_market_sentinel_aggregate_contract.py` 与夹具 `tests/fixtures/sentiment/market_sentinel_aggregate_*.json`（契约与极端/降级场景）。
+
 ## 2026-04-18 (sentiment tools optimization closure)
 
 ### Major: four sentiment tools finalized

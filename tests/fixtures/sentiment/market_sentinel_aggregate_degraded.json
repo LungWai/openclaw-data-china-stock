@@ -1,0 +1,23 @@
+{
+  "overall_score": 44,
+  "sentiment_stage": "震荡",
+  "sub_scores": {
+    "limit_up_ecology": 58,
+    "fund_flow_attitude": 54,
+    "northbound_trend": 50,
+    "sector_structure": 48
+  },
+  "factor_attribution": {
+    "leading": "limit_up_ecology",
+    "lagging": "sector_structure",
+    "notes": "北向数据源不可用，northbound_trend 为中性占位；权重已按 config 重标化。"
+  },
+  "data_completeness_ratio": 0.75,
+  "action_bias": "防守",
+  "risk_counterevidence": [
+    "tool_fetch_northbound_flow: upstream unavailable (simulated full-day outage).",
+    "Northbound evidence excluded from scoring; do not treat as Connect flow truth."
+  ],
+  "confidence_band": "low",
+  "degraded": true
+}

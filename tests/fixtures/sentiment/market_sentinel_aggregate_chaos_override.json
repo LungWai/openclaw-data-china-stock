@@ -1,0 +1,20 @@
+{
+  "overall_score": 42,
+  "sentiment_stage": "混沌",
+  "sub_scores": {
+    "limit_up_ecology": 88,
+    "fund_flow_attitude": 40,
+    "northbound_trend": 38,
+    "sector_structure": 35
+  },
+  "factor_attribution": {
+    "leading": "limit_up_ecology",
+    "lagging": "sector_structure",
+    "notes": "子项极差 53 ≥ chaos_subscore_spread_min，阶段覆盖为混沌。"
+  },
+  "data_completeness_ratio": 1.0,
+  "action_bias": "均衡",
+  "risk_counterevidence": ["涨停分项显著高于资金与板块，多空叙事分裂。"],
+  "confidence_band": "medium",
+  "degraded": false
+}

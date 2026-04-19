@@ -23,6 +23,15 @@ if plugins_dir.exists():
 sys.path.insert(0, str(project_root))
 
 
+def _read_plugin_version() -> str:
+    try:
+        p = project_root / "openclaw.plugin.json"
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return str(data.get("version") or "0.0.0")
+    except Exception:
+        return "0.0.0"
+
+
 def _load_dotenv_for_tools() -> None:
     """
     与 OpenClaw Gateway 对齐：从项目根 .env 与 ~/.openclaw/.env 注入环境变量。
@@ -215,6 +224,14 @@ TOOL_MAP: Dict[str, ToolSpec] = {
     "tool_read_market_data": ToolSpec(
         module_path="data.read_market_data",
         function_name="tool_read_market_data",
+    ),
+    "tool_metrics_snapshot": ToolSpec(
+        module_path="plugins.utils.tool_metrics",
+        function_name="tool_metrics_snapshot",
+    ),
+    "tool_batch_fetch": ToolSpec(
+        module_path="merged.tool_batch_fetch",
+        function_name="tool_batch_fetch",
     ),
     # 分析工具（保留）
     "tool_calculate_technical_indicators": ToolSpec(
@@ -646,14 +663,26 @@ def main():
     spec = TOOL_MAP[tool_name]
     module_path, function_name = spec.module_path, spec.function_name
 
-    # 可选：记录执行耗时与结果（环境变量 OPTION_TRADING_ASSISTANT_LOG_TOOL_EXEC=1 时启用）
     log_tool_exec = os.environ.get("OPTION_TRADING_ASSISTANT_LOG_TOOL_EXEC", "").strip() in ("1", "true", "yes")
-    start_time = __import__("time").time() if log_tool_exec else None
+    import time as _time
 
-    # 动态导入并调用工具函数
-    #
-    # 重要：部分依赖库/配置加载器会把日志打印到 stdout，干扰 cron/脚本对 JSON 输出的解析。
-    # 这里将工具执行过程中的 stdout/stderr 捕获起来，保证 tool_runner 的最终输出始终是“纯 JSON”。
+    t0 = _time.perf_counter()
+
+    def _elapsed_ms() -> int:
+        return int(round((_time.perf_counter() - t0) * 1000))
+
+    def _envelope(dst: Dict[str, Any], *, ok: bool) -> Dict[str, Any]:
+        dst.setdefault("elapsed_ms", _elapsed_ms())
+        dst.setdefault("tool", tool_name)
+        dst.setdefault("plugin_version", _read_plugin_version())
+        try:
+            from plugins.utils.tool_metrics import record_tool_call
+
+            record_tool_call(tool_name, int(dst.get("elapsed_ms") or _elapsed_ms()), ok=ok)
+        except Exception:
+            pass
+        return dst
+
     buf_out = io.StringIO()
     buf_err = io.StringIO()
     try:
@@ -661,47 +690,53 @@ def main():
             module = __import__(module_path, fromlist=[function_name])
             tool_func: Callable[..., Any] = getattr(module, function_name)
 
-            # 如果定义了 Pydantic 参数模型，优先做结构化校验与转换
             if spec.params_model is not None:
                 try:
                     model_instance = spec.params_model(**args)
                     args = model_instance.model_dump()
                 except ValidationError as ve:
-                    print(
-                        json.dumps(
-                            {
-                                "error": "参数校验失败",
-                                "error_code": "VALIDATION_ERROR",
-                                "details": json.loads(ve.json()),
-                            },
-                            ensure_ascii=False,
-                        )
+                    payload = _envelope(
+                        {
+                            "error": "参数校验失败",
+                            "error_code": "VALIDATION_ERROR",
+                            "details": json.loads(ve.json()),
+                        },
+                        ok=False,
                     )
+                    print(json.dumps(payload, ensure_ascii=False))
                     sys.exit(1)
 
-            # 显式参数名映射（见 ToolSpec.param_mapping）
             if spec.param_mapping:
                 for from_key, to_key in spec.param_mapping.items():
                     if from_key in args:
                         args[to_key] = args.pop(from_key)
 
-            # 调用工具函数
             result = tool_func(**args)
 
-        if log_tool_exec and start_time is not None:
-            duration_ms = round((__import__("time").time() - start_time) * 1000)
+        if log_tool_exec:
             import logging
+
             logging.getLogger(__name__).info(
-                "tool_exec %s duration_ms=%d success=true", tool_name, duration_ms
+                "tool_exec %s duration_ms=%d success=true", tool_name, _elapsed_ms()
             )
-        # 输出结果（JSON格式）
+        ok = True
+        if isinstance(result, dict):
+            ok = bool(result.get("success", True))
+            _envelope(result, ok=ok)
+        else:
+            try:
+                from plugins.utils.tool_metrics import record_tool_call
+
+                record_tool_call(tool_name, _elapsed_ms(), ok=True)
+            except Exception:
+                pass
         print(json.dumps(result, ensure_ascii=False, default=str))
     except ImportError as e:
-        if log_tool_exec and start_time is not None:
-            duration_ms = round((__import__("time").time() - start_time) * 1000)
+        if log_tool_exec:
             import logging
+
             logging.getLogger(__name__).info(
-                "tool_exec %s duration_ms=%d success=false error_code=IMPORT_ERROR", tool_name, duration_ms
+                "tool_exec %s duration_ms=%d success=false error_code=IMPORT_ERROR", tool_name, _elapsed_ms()
             )
         payload = {
             "error": f"导入错误: {e}",
@@ -713,14 +748,15 @@ def main():
             payload["captured_stdout"] = buf_out.getvalue()[-2000:]
         if buf_err.getvalue().strip():
             payload["captured_stderr"] = buf_err.getvalue()[-2000:]
+        _envelope(payload, ok=False)
         print(json.dumps(payload, ensure_ascii=False, default=str))
         sys.exit(1)
     except Exception as e:
-        if log_tool_exec and start_time is not None:
-            duration_ms = round((__import__("time").time() - start_time) * 1000)
+        if log_tool_exec:
             import logging
+
             logging.getLogger(__name__).info(
-                "tool_exec %s duration_ms=%d success=false error_code=RUNTIME_ERROR", tool_name, duration_ms
+                "tool_exec %s duration_ms=%d success=false error_code=RUNTIME_ERROR", tool_name, _elapsed_ms()
             )
         payload = {
             "error": str(e),
@@ -731,6 +767,7 @@ def main():
             payload["captured_stdout"] = buf_out.getvalue()[-2000:]
         if buf_err.getvalue().strip():
             payload["captured_stderr"] = buf_err.getvalue()[-2000:]
+        _envelope(payload, ok=False)
         print(json.dumps(payload, ensure_ascii=False, default=str))
         sys.exit(1)
 

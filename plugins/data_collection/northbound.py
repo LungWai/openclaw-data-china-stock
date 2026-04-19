@@ -172,6 +172,7 @@ def tool_fetch_northbound_flow(date: str = None, lookback_days: int = 1) -> Dict
             used_fallback=True,
             data_quality="cached",
             cache_hit=True,
+            quality_data_type="northbound",
         )
 
     attempts: List[Dict] = []
@@ -210,6 +211,7 @@ def tool_fetch_northbound_flow(date: str = None, lookback_days: int = 1) -> Dict
                         used_fallback=False,
                         data_quality="fresh" if not note else "previous_day_close",
                         cache_hit=False,
+                        quality_data_type="northbound",
                     )
             except Exception as e:  # noqa: BLE001
                 attempts.append({"source": "tushare.moneyflow_hsgt", "ok": False, "message": str(e)[:160]})
@@ -234,9 +236,11 @@ def tool_fetch_northbound_flow(date: str = None, lookback_days: int = 1) -> Dict
             "Referer": "http://data.eastmoney.com/hsgt/"
         }
         
+        from plugins.utils.throttled_http import run_bounded
+
         ctx = without_proxy_env() if PROXY_ENV_AVAILABLE else nullcontext()
         with ctx:
-            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response = run_bounded(requests.get, url, params=params, headers=headers, timeout=10)
         response.encoding = "utf-8"
         
         # 解析JSONP响应
@@ -336,6 +340,7 @@ def tool_fetch_northbound_flow(date: str = None, lookback_days: int = 1) -> Dict
             used_fallback=True,
             data_quality="partial",
             cache_hit=False,
+            quality_data_type="northbound",
         )
         
     except Exception as e:
@@ -355,6 +360,7 @@ def tool_fetch_northbound_flow(date: str = None, lookback_days: int = 1) -> Dict
             cache_hit=False,
             error_code="UPSTREAM_FETCH_FAILED",
             error_message=str(e),
+            quality_data_type="northbound",
         )
 
 

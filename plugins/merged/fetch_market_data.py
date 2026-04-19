@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 
@@ -13,7 +14,21 @@ def _norm(s: Optional[str]) -> str:
     return (s or "").strip().lower()
 
 
-def tool_fetch_market_data(
+def _enrich_unified_market(out: Any) -> Any:
+    if not isinstance(out, dict):
+        return out
+    try:
+        from plugins.utils.response_quality import enrich_response_dict
+
+        if not out.get("as_of"):
+            out["as_of"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        enrich_response_dict(out, min_records=1, tool_ttl_seconds=300)
+    except Exception:
+        pass
+    return out
+
+
+def _tool_fetch_market_data_inner(
     asset_type: str,
     view: str,
     asset_code: Optional[str] = "",
@@ -207,4 +222,31 @@ def tool_fetch_market_data(
         return {"success": False, "message": f"不支持 stock.view={view}", "data": None}
 
     return {"success": False, "message": f"不支持 asset_type={asset_type}", "data": None}
+
+
+def tool_fetch_market_data(
+    asset_type: str,
+    view: str,
+    asset_code: Optional[str] = "",
+    contract_code: Optional[str] = "",
+    period: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    lookback_days: int = 5,
+    mode: str = "production",
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    out = _tool_fetch_market_data_inner(
+        asset_type=asset_type,
+        view=view,
+        asset_code=asset_code,
+        contract_code=contract_code,
+        period=period,
+        start_date=start_date,
+        end_date=end_date,
+        lookback_days=lookback_days,
+        mode=mode,
+        **kwargs,
+    )
+    return _enrich_unified_market(out)  # type: ignore[return-value]
 

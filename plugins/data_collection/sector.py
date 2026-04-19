@@ -63,6 +63,7 @@ def tool_fetch_sector_data(sector_type: str = "industry", period: str = "today")
             used_fallback=True,
             data_quality="cached",
             cache_hit=True,
+            quality_data_type="sector",
         )
     if sector_type not in ("industry", "concept"):
         return {
@@ -124,6 +125,7 @@ def tool_fetch_sector_data(sector_type: str = "industry", period: str = "today")
             cache_hit=False,
             error_code="UPSTREAM_FETCH_FAILED",
             error_message="all sector upstream sources failed",
+            quality_data_type="sector",
         )
 
     # ----- 概念：新浪截面 → 东财概念 clist → 东财 JSONP -----
@@ -173,6 +175,7 @@ def tool_fetch_sector_data(sector_type: str = "industry", period: str = "today")
         cache_hit=False,
         error_code="UPSTREAM_FETCH_FAILED",
         error_message="all concept upstream sources failed",
+        quality_data_type="sector",
     )
 
 
@@ -606,6 +609,8 @@ def _finalize_sector_response(
         used_fallback=bool(fallback_route),
         data_quality="fresh" if gate.get("ok") else "partial",
         cache_hit=False,
+        quality_data_type="sector",
+        quality_min_records=30 if sector_type == "industry" else 10,
     )
 
 

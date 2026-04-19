@@ -60,6 +60,8 @@ class TestToolRunnerDispatch(unittest.TestCase):
         )
         self.assertFalse(res.get("success", True))
         self.assertIn("不支持 index.view=bad", res.get("message", ""))
+        self.assertIn("elapsed_ms", res)
+        self.assertIn("plugin_version", res)
 
     def test_tool_fetch_market_data_stock_market_overview_no_asset_code(self):
         res = _run_tool(
@@ -73,6 +75,31 @@ class TestToolRunnerDispatch(unittest.TestCase):
         # 联网失败时 success 为 false；结构应含 message 键
         self.assertIn("message", res)
         self.assertIn("success", res)
+
+    def test_tool_metrics_snapshot(self):
+        res = _run_tool("tool_metrics_snapshot", {})
+        self.assertTrue(res.get("success", False))
+        self.assertIn("cache_hit_rate", res)
+        self.assertIn("elapsed_ms", res)
+        self.assertIn("plugin_version", res)
+
+    def test_tool_batch_fetch_smoke(self):
+        res = _run_tool(
+            "tool_batch_fetch",
+            {
+                "items": [
+                    {
+                        "id": "m1",
+                        "tool": "tool_metrics_snapshot",
+                        "args": {},
+                    }
+                ]
+            },
+        )
+        self.assertIn("results", res)
+        self.assertIn("elapsed_ms", res)
+        inner = res["results"].get("m1") or {}
+        self.assertTrue(inner.get("success", False))
 
 
 if __name__ == "__main__":

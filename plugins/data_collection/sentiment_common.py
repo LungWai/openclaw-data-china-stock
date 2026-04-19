@@ -25,7 +25,17 @@ def build_cache_key(namespace: str, payload: Dict[str, Any]) -> str:
 
 
 def cache_get(key: str) -> Optional[Any]:
-    return _CACHE.get(key)
+    v = _CACHE.get(key)
+    try:
+        from plugins.utils.tool_metrics import record_cache_hit, record_cache_miss
+
+        if v is not None:
+            record_cache_hit()
+        else:
+            record_cache_miss()
+    except Exception:
+        pass
+    return v
 
 
 def cache_set(key: str, value: Any, ttl: int) -> None:
@@ -98,6 +108,9 @@ def normalize_contract(
     cache_hit: bool = False,
     error_code: Optional[str] = None,
     error_message: Optional[str] = None,
+    quality_min_records: int = 1,
+    quality_data_type: Optional[str] = None,
+    quality_tool_ttl: Optional[int] = None,
 ) -> Dict[str, Any]:
     out = dict(payload)
     out["success"] = bool(success)
@@ -112,4 +125,13 @@ def normalize_contract(
     out["error_message"] = error_message
     if "explanation" not in out:
         out["explanation"] = ""
+    try:
+        from plugins.utils.response_quality import enrich_response_dict
+
+        ttl = quality_tool_ttl
+        if ttl is None and quality_data_type:
+            ttl = infer_ttl_seconds(quality_data_type)
+        enrich_response_dict(out, min_records=quality_min_records, tool_ttl_seconds=ttl)
+    except Exception:
+        pass
     return out

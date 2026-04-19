@@ -326,6 +326,7 @@ def tool_fetch_limit_up_stocks(
             used_fallback=True,
             data_quality="cached",
             cache_hit=True,
+            quality_data_type="limit_up",
         )
 
     if date:
@@ -426,6 +427,7 @@ def tool_fetch_limit_up_stocks(
             cache_hit=False,
             error_code="UPSTREAM_FETCH_FAILED",
             error_message=gate["reason"],
+            quality_data_type="limit_up",
         )
 
     prev_perf_mean = round(sum(previous_changes) / len(previous_changes), 4) if previous_changes else None
@@ -499,4 +501,6 @@ def tool_fetch_limit_up_stocks(
         used_fallback=source_used != "akshare.stock_zt_pool_em",
         data_quality="fresh",
         cache_hit=False,
+        quality_data_type="limit_up",
+        quality_min_records=5 if len(dates) == 1 else 1,
     )

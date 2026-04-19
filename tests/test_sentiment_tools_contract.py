@@ -38,6 +38,9 @@ def test_limit_up_contract_and_metrics():
     assert out["success"] is True
     assert "sentiment_stage" in out
     assert "data_quality" in out
+    assert "quality_score" in out
+    assert isinstance(out["quality_score"], int)
+    assert 0 <= out["quality_score"] <= 100
     assert out["limit_up_count"] == 5
 
 
@@ -56,6 +59,7 @@ def test_fund_flow_market_postprocess():
     assert "cumulative" in out
     assert "flow_score" in out
     assert "data_quality" in out
+    assert "quality_score" in out
 
 
 def test_northbound_legacy_fallback_path():

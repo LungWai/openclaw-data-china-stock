@@ -19,6 +19,18 @@ Applies to:
 - `error_code`: nullable, e.g. `UPSTREAM_FETCH_FAILED`
 - `error_message`: nullable
 - `explanation`: short human-readable explanation
+- `quality_score`: int in \[0, 100\] — heuristic composite (freshness, fallback, completeness); see `plugins/utils/response_quality.py`
+- `data_generated_at`: optional string — when present, **must equal** `as_of` (alias for consumers that expect an `*_at` suffix)
+
+## Global fields injected by `tool_runner.py`
+
+These apply to **all** tools invoked via `tool_runner.py` (not only sentiment):
+
+- `elapsed_ms`: int — wall-clock duration of the invocation in the runner process
+- `tool`: string — tool id (e.g. `tool_fetch_limit_up_stocks`)
+- `plugin_version`: string — mirrors `version` in `openclaw.plugin.json`
+
+See also [../optimization/tool_response_metadata.md](../optimization/tool_response_metadata.md).
 
 ## Backward compatibility
 
@@ -38,7 +50,12 @@ Existing business fields are preserved (e.g. `data`, `records`, `leaders`, `sign
   "cache_hit": false,
   "error_code": null,
   "error_message": null,
-  "explanation": "..."
+  "explanation": "...",
+  "quality_score": 88,
+  "data_generated_at": "2026-04-18 11:00:00",
+  "elapsed_ms": 120,
+  "tool": "tool_fetch_limit_up_stocks",
+  "plugin_version": "0.5.3"
 }
 ```
 

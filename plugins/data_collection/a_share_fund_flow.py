@@ -318,6 +318,7 @@ def tool_fetch_a_share_fund_flow(
             used_fallback=True,
             data_quality="cached",
             cache_hit=True,
+            quality_data_type="fund_flow",
         )
     if qk not in QUERY_KINDS:
         return {
@@ -411,6 +412,7 @@ def _post_process_fund_flow(raw: Dict[str, Any], qk: str) -> Dict[str, Any]:
             cache_hit=False,
             error_code="UPSTREAM_FETCH_FAILED",
             error_message=raw.get("error") or raw.get("message"),
+            quality_data_type="fund_flow",
         )
 
     payload = dict(raw)
@@ -461,6 +463,7 @@ def _post_process_fund_flow(raw: Dict[str, Any], qk: str) -> Dict[str, Any]:
         used_fallback=bool(payload.get("used_fallback")),
         data_quality="fresh" if gate.get("ok") else "partial",
         cache_hit=False,
+        quality_data_type="fund_flow",
     )
 
 

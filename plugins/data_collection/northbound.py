@@ -41,6 +41,12 @@ except Exception:
 
 
 _TUSHARE_PRO = None
+ENABLE_LEGACY_FALLBACK = str(os.environ.get("NORTHBOUND_ENABLE_LEGACY_FALLBACK", "true")).lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
 
 
 def _get_tushare_pro():
@@ -57,6 +63,10 @@ def _get_tushare_pro():
     except Exception:
         _TUSHARE_PRO = None
     return _TUSHARE_PRO
+
+
+def _has_tushare_token() -> bool:
+    return bool((os.environ.get("TUSHARE_TOKEN") or "").strip())
 
 
 def _is_trading_hours(dt: datetime) -> bool:
@@ -188,6 +198,7 @@ def tool_fetch_northbound_flow(date: str = None, lookback_days: int = 1) -> Dict
             note = "盘中时段返回上一交易日收盘汇总。"
 
         pro = _get_tushare_pro()
+        token_present = _has_tushare_token()
         if pro is not None:
             try:
                 df_ts = pro.moneyflow_hsgt(trade_date=query_trade_date)
@@ -215,6 +226,33 @@ def tool_fetch_northbound_flow(date: str = None, lookback_days: int = 1) -> Dict
                     )
             except Exception as e:  # noqa: BLE001
                 attempts.append({"source": "tushare.moneyflow_hsgt", "ok": False, "message": str(e)[:160]})
+        else:
+            reason = "tushare_not_installed" if not TUSHARE_AVAILABLE else "missing_tushare_token"
+            attempts.append({"source": "tushare.moneyflow_hsgt", "ok": False, "message": reason})
+
+        if not ENABLE_LEGACY_FALLBACK:
+            err_code = "TOKEN_MISSING" if not token_present else "UPSTREAM_FETCH_FAILED"
+            err_msg = (
+                "TUSHARE_TOKEN 未配置，且已禁用 legacy 降级。"
+                if not token_present
+                else "Tushare 主源失败，且已禁用 legacy 降级。"
+            )
+            return normalize_contract(
+                success=False,
+                payload={
+                    "status": "error",
+                    "date": date if date else datetime.now().strftime("%Y-%m-%d"),
+                    "explanation": err_msg,
+                },
+                source="northbound",
+                attempts=attempts,
+                used_fallback=False,
+                data_quality="partial",
+                cache_hit=False,
+                error_code=err_code,
+                error_message=err_msg,
+                quality_data_type="northbound",
+            )
 
         # 东方财富北向资金接口（AKShare summary 已移除，不再使用）
         url = "http://data.eastmoney.com/DataCenter_V3/Trade2014/HsgtFlow.ashx"

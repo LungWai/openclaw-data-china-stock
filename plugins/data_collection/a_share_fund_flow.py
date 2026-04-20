@@ -13,6 +13,7 @@ import logging
 import math
 import os
 from contextlib import nullcontext
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -27,6 +28,14 @@ try:
 except Exception:  # noqa: BLE001
     ak = None  # type: ignore[assignment]
     AKSHARE_AVAILABLE = False
+
+try:
+    import tushare as ts  # type: ignore[import]
+
+    TUSHARE_AVAILABLE = True
+except Exception:  # noqa: BLE001
+    ts = None  # type: ignore[assignment]
+    TUSHARE_AVAILABLE = False
 
 try:
     from plugins.utils.proxy_env import without_proxy_env
@@ -141,6 +150,7 @@ ENABLE_EASTMONEY_FALLBACK = str(os.environ.get("FUND_FLOW_ENABLE_EASTMONEY_FALLB
 THS_MARKET_PROXY_HISTORY_FILE = (
     Path(__file__).resolve().parents[2] / "data" / "cache" / "fund_flow" / "ths_market_proxy_history.json"
 )
+_TUSHARE_PRO = None
 
 
 def _clip_limit(n: int) -> int:
@@ -156,6 +166,64 @@ def _infer_market(code: str) -> str:
     if c.startswith("0") or c.startswith("3"):
         return "sz"
     return "sh"
+
+
+def _get_tushare_pro():
+    global _TUSHARE_PRO
+    if _TUSHARE_PRO is not None:
+        return _TUSHARE_PRO
+    if not TUSHARE_AVAILABLE:
+        return None
+    token = (os.environ.get("TUSHARE_TOKEN") or "").strip()
+    if not token:
+        return None
+    try:
+        _TUSHARE_PRO = ts.pro_api(token)
+    except Exception:
+        _TUSHARE_PRO = None
+    return _TUSHARE_PRO
+
+
+def _tushare_ts_code(code: str, market: str) -> str:
+    return f"{code}.SH" if market == "sh" else f"{code}.SZ"
+
+
+def _fetch_stock_history_tushare_moneyflow(code: str, market: str, lookback_days: int) -> Optional[pd.DataFrame]:
+    pro = _get_tushare_pro()
+    if pro is None:
+        return None
+    end_dt = datetime.now()
+    # 资金流是交易日序列，按自然日放大窗口，降低节假日导致的空数据概率
+    start_dt = end_dt - timedelta(days=max(40, lookback_days * 4))
+    ts_code = _tushare_ts_code(code, market)
+    df = pro.moneyflow(
+        ts_code=ts_code,
+        start_date=start_dt.strftime("%Y%m%d"),
+        end_date=end_dt.strftime("%Y%m%d"),
+    )
+    if df is None or getattr(df, "empty", True):
+        return None
+
+    dfx = df.copy()
+    if "trade_date" in dfx.columns:
+        dfx["日期"] = pd.to_datetime(dfx["trade_date"], format="%Y%m%d", errors="coerce")
+    else:
+        dfx["日期"] = pd.NaT
+    if "close" in dfx.columns:
+        dfx["收盘价"] = dfx["close"]
+    if "pct_chg" in dfx.columns:
+        dfx["涨跌幅"] = dfx["pct_chg"]
+    if "net_mf_amount" in dfx.columns:
+        dfx["主力净流入-净额"] = dfx["net_mf_amount"]
+    if "buy_elg_amount" in dfx.columns and "sell_elg_amount" in dfx.columns:
+        dfx["超大单净流入-净额"] = dfx["buy_elg_amount"] - dfx["sell_elg_amount"]
+    if "buy_lg_amount" in dfx.columns and "sell_lg_amount" in dfx.columns:
+        dfx["大单净流入-净额"] = dfx["buy_lg_amount"] - dfx["sell_lg_amount"]
+    if "buy_md_amount" in dfx.columns and "sell_md_amount" in dfx.columns:
+        dfx["中单净流入-净额"] = dfx["buy_md_amount"] - dfx["sell_md_amount"]
+    if "buy_sm_amount" in dfx.columns and "sell_sm_amount" in dfx.columns:
+        dfx["小单净流入-净额"] = dfx["buy_sm_amount"] - dfx["sell_sm_amount"]
+    return dfx
 
 
 def _df_to_records(df: Optional[pd.DataFrame], limit: Optional[int]) -> Tuple[List[Dict[str, Any]], List[str]]:
@@ -700,26 +768,38 @@ def _qk_stock_history(
         mkt = _infer_market(code)
     lb = max(1, min(int(lookback_days or LOOKBACK_DEFAULT), LOOKBACK_MAX))
     params_echo.update({"stock_code": code, "market": mkt, "lookback_days": lb})
+    params_echo["stock_history_note"] = "tushare.moneyflow 优先；失败回退 eastmoney_http -> akshare"
 
     ctx = without_proxy_env() if PROXY_ENV_AVAILABLE else nullcontext()
     df: Optional[pd.DataFrame] = None
-    src = "akshare.stock_individual_fund_flow"
+    src = "tushare.moneyflow"
     attempts_h: List[Dict[str, Any]] = []
     with ctx:
+        try:
+            df = _fetch_stock_history_tushare_moneyflow(code, mkt, lb)
+            attempts_h.append(
+                {"source": "tushare.moneyflow", "ok": bool(df is not None and not df.empty), "message": "ok"}
+            )
+            if df is not None and not df.empty:
+                src = "tushare.moneyflow"
+        except Exception as e:  # noqa: BLE001
+            attempts_h.append({"source": "tushare.moneyflow", "ok": False, "message": str(e)[:220]})
         if EM_HTTP_AVAILABLE and _em_http is not None:
-            try:
-                df = _em_http.stock_individual_fund_flow_direct(code, mkt)
-                attempts_h.append(
-                    {"source": "eastmoney_http", "ok": bool(df is not None and not df.empty), "message": "ok"}
-                )
-                if df is not None and not df.empty:
-                    src = "eastmoney_http.push2his"
-            except Exception as e:  # noqa: BLE001
-                attempts_h.append({"source": "eastmoney_http", "ok": False, "message": str(e)[:220]})
+            if df is None or getattr(df, "empty", True):
+                try:
+                    df = _em_http.stock_individual_fund_flow_direct(code, mkt)
+                    attempts_h.append(
+                        {"source": "eastmoney_http", "ok": bool(df is not None and not df.empty), "message": "ok"}
+                    )
+                    if df is not None and not df.empty:
+                        src = "eastmoney_http.push2his"
+                except Exception as e:  # noqa: BLE001
+                    attempts_h.append({"source": "eastmoney_http", "ok": False, "message": str(e)[:220]})
         if df is None or getattr(df, "empty", True):
             try:
                 df = ak.stock_individual_fund_flow(stock=code, market=mkt)
                 attempts_h.append({"source": "akshare", "ok": bool(df is not None and not df.empty), "message": "ok"})
+                src = "akshare.stock_individual_fund_flow"
             except Exception as e:  # noqa: BLE001
                 attempts_h.append({"source": "akshare", "ok": False, "message": str(e)[:220]})
                 return {
@@ -748,7 +828,7 @@ def _qk_stock_history(
         dfc = dfc.tail(lb)
 
     records, columns = _df_to_records(dfc, None)
-    used_fb = src == "akshare.stock_individual_fund_flow"
+    used_fb = src != "tushare.moneyflow"
     return {
         "success": True,
         "query_kind": "stock_history",
@@ -890,7 +970,18 @@ def _qk_main_force(symbol: str, limit: int, params_echo: Dict[str, Any]) -> Dict
                 src = "akshare.stock_main_fund_flow"
             except Exception as e:  # noqa: BLE001
                 attempts_m.append({"source": "akshare", "ok": False, "message": str(e)[:220]})
-                return {"success": False, "query_kind": "main_force_rank", "error": str(e), "params_echo": params_echo}
+                # 继续走代理降级，不立即返回
+
+        # 主链路失败时，默认启用代理降级（THS 即时个股资金榜）
+        if df is None or getattr(df, "empty", True):
+            try:
+                df = ak.stock_fund_flow_individual(symbol="即时")
+                ok = df is not None and not getattr(df, "empty", True)
+                attempts_m.append({"source": "ths_proxy_stock_rank", "ok": ok, "message": "immediate"})
+                if ok:
+                    src = "proxy:akshare.stock_fund_flow_individual.immediate"
+            except Exception as e:  # noqa: BLE001
+                attempts_m.append({"source": "ths_proxy_stock_rank", "ok": False, "message": str(e)[:220]})
     if df is None or df.empty:
         return {
             "success": False,
@@ -900,7 +991,12 @@ def _qk_main_force(symbol: str, limit: int, params_echo: Dict[str, Any]) -> Dict
             "attempts": attempts_m[:ATTEMPTS_CAP],
         }
     records, columns = _df_to_records(df, limit)
-    used_fb = src == "akshare.stock_main_fund_flow"
+    used_fb = src != "eastmoney_http.clist_limited"
+    metric_semantics = "direct_main_force_rank"
+    note: Optional[str] = None
+    if src.startswith("proxy:"):
+        metric_semantics = "proxy_not_equivalent_to_main_force_rank"
+        note = "主力净流入榜双源失败，已降级为 THS 即时个股资金榜（代理口径）。"
     return {
         "success": True,
         "query_kind": "main_force_rank",
@@ -910,6 +1006,8 @@ def _qk_main_force(symbol: str, limit: int, params_echo: Dict[str, Any]) -> Dict
         "attempts": attempts_m[:ATTEMPTS_CAP],
         "columns": columns,
         "records": records,
+        "metric_semantics": metric_semantics,
+        "note": note,
     }
 
 
